@@ -204,4 +204,4 @@ This project was built with Claude Code. In two places I didn't accept its first
 
 ---
 
-Authored by: Nilimesh Roy, Nyagrodhah Futures Pvt. Ltd.
+Authored by: Nilimesh Roy.
