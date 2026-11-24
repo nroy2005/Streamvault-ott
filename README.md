@@ -4,6 +4,7 @@
 |---|---|
 | **Version Date** | 2026-11-25 |
 | **Status** | Final |
+https://streamvault-ott-vert.vercel.app
 
 StreamVault is a dark-mode OTT streaming platform. The backend is a NestJS API over MongoDB that serves a catalog seeded from TMDB. The frontend is a React SPA with JWT auth, search-as-you-type, a watchlist, and a video player that remembers where you stopped.
 
