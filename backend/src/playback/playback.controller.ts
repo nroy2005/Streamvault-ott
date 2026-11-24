@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
 import { ParseObjectIdPipe } from '@nestjs/mongoose';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthUser, CurrentUser } from '../auth/jwt.strategy';
@@ -20,12 +20,10 @@ export class PlaybackController {
     return this.playback.get(user.userId, movieId);
   }
 
-  @Put(':movieId')
-  save(
-    @CurrentUser() user: AuthUser,
-    @Param('movieId', ParseObjectIdPipe) movieId: string,
-    @Body() dto: SavePlaybackDto,
-  ) {
-    return this.playback.save(user.userId, movieId, dto.positionSeconds);
+  // Upsert, so 200 rather than 201: repeated saves update the same record.
+  @Post()
+  @HttpCode(200)
+  save(@CurrentUser() user: AuthUser, @Body() dto: SavePlaybackDto) {
+    return this.playback.save(user.userId, dto.movieId, dto.positionSeconds);
   }
 }
