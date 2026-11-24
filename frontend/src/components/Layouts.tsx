@@ -7,6 +7,7 @@ import { Navbar } from './Navbar'
 /** Gate for logged-in routes; also loads the user's watchlist once per login. */
 export function RequireAuth() {
   const token = useAuth((s) => s.accessToken)
+  const ready = useAuth((s) => s.ready)
   const load = useWatchlist((s) => s.load)
   const location = useLocation()
 
@@ -14,6 +15,7 @@ export function RequireAuth() {
     if (token) void load().catch(() => {})
   }, [token, load])
 
+  if (!ready) return <p className="grid min-h-screen place-items-center text-neutral-500">Loading…</p>
   if (!token) return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
   return <Outlet />
 }

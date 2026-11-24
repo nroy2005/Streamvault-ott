@@ -45,7 +45,8 @@ export class AuthService {
     return this.issueTokens(user.id as string, user.email);
   }
 
-  async refresh(refreshToken: string): Promise<AuthTokens> {
+  async refresh(refreshToken: string | undefined): Promise<AuthTokens> {
+    if (!refreshToken) throw new UnauthorizedException('Invalid refresh token');
     let payload: JwtPayload;
     try {
       payload = await this.jwt.verifyAsync<JwtPayload>(refreshToken, { secret: env('JWT_REFRESH_SECRET') });
@@ -57,6 +58,17 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
     return this.issueTokens(user.id as string, user.email);
+  }
+
+  /** Revokes the refresh token server-side. Invalid or already-rotated tokens are ignored. */
+  async logout(refreshToken: string | undefined): Promise<void> {
+    if (!refreshToken) return;
+    const payload = await this.jwt
+      .verifyAsync<JwtPayload>(refreshToken, { secret: env('JWT_REFRESH_SECRET') })
+      .catch(() => null);
+    if (payload) {
+      await this.users.updateOne({ _id: payload.sub, refreshTokenHash: sha256(refreshToken) }, { refreshTokenHash: null });
+    }
   }
 
   // ponytail: one refresh token per user, so logging in on a second device signs out the first.

@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
+import { restoreSession } from './api/client'
 import { AppShell, RequireAuth } from './components/Layouts'
 import './index.css'
 import { AuthPage } from './pages/AuthPage'
@@ -8,6 +9,8 @@ import { HomePage } from './pages/HomePage'
 import { PlayerPage } from './pages/PlayerPage'
 import { SearchPage } from './pages/SearchPage'
 import { WatchlistPage } from './pages/WatchlistPage'
+
+void restoreSession()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

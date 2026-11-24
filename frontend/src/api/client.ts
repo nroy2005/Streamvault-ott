@@ -1,8 +1,9 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { useAuth } from '../stores/auth'
-import type { AuthTokens } from './types'
+import type { AccessTokenResponse } from './types'
 
-export const api = axios.create({ baseURL: '/api' })
+// withCredentials: send the httpOnly refresh cookie even if the API is on another origin.
+export const api = axios.create({ baseURL: '/api', withCredentials: true })
 
 api.interceptors.request.use((config) => {
   const token = useAuth.getState().accessToken
@@ -10,17 +11,40 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Concurrent 401s share one refresh call (the backend rotates refresh tokens,
-// so a second parallel refresh with the same token would be rejected).
+// Concurrent callers share one refresh call: the backend rotates the refresh cookie,
+// so a second parallel refresh with the old cookie would be rejected.
 let refreshing: Promise<string> | null = null
 
-async function refreshAccessToken(): Promise<string> {
-  const { refreshToken, setTokens } = useAuth.getState()
-  if (!refreshToken) throw new Error('Not logged in')
-  // Bare axios, not `api`: a failing refresh must not re-enter the interceptor.
-  const { data } = await axios.post<AuthTokens>('/api/auth/refresh', { refreshToken })
-  setTokens(data)
-  return data.accessToken
+/** Trades the httpOnly refresh cookie for a new access token. */
+export function refreshAccessToken(): Promise<string> {
+  refreshing ??= axios
+    // Bare axios, not `api`: a failing refresh must not re-enter the 401 interceptor.
+    .post<AccessTokenResponse>('/api/auth/refresh', undefined, { withCredentials: true })
+    .then(({ data }) => {
+      useAuth.getState().setAccessToken(data.accessToken)
+      return data.accessToken
+    })
+    .finally(() => (refreshing = null))
+  return refreshing
+}
+
+/** On startup: if the refresh cookie is still valid, the user stays logged in across reloads. */
+export async function restoreSession(): Promise<void> {
+  try {
+    await refreshAccessToken()
+  } catch {
+    // no or expired cookie: stay logged out
+  } finally {
+    useAuth.getState().setReady()
+  }
+}
+
+export async function signOut(): Promise<void> {
+  try {
+    await api.post('/auth/logout') // revokes the token server-side and clears the cookie
+  } finally {
+    useAuth.getState().setAccessToken(null)
+  }
 }
 
 api.interceptors.response.use(undefined, async (error: AxiosError) => {
@@ -30,11 +54,10 @@ api.interceptors.response.use(undefined, async (error: AxiosError) => {
   }
   original._retried = true
   try {
-    refreshing ??= refreshAccessToken().finally(() => (refreshing = null))
-    original.headers.Authorization = `Bearer ${await refreshing}`
+    original.headers.Authorization = `Bearer ${await refreshAccessToken()}`
     return api(original)
   } catch {
-    useAuth.getState().logout()
+    useAuth.getState().setAccessToken(null)
     throw error
   }
 })

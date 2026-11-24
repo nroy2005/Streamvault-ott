@@ -1,4 +1,4 @@
-import { IsEmail, IsJWT, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class RegisterDto {
   @IsEmail()
@@ -18,9 +18,4 @@ export class LoginDto {
   @IsString()
   @IsNotEmpty()
   password!: string;
-}
-
-export class RefreshDto {
-  @IsJWT()
-  refreshToken!: string;
 }

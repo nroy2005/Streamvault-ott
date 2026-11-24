@@ -23,9 +23,9 @@ export interface MovieQuery {
   limit?: number
 }
 
-export interface AuthTokens {
+/** Login/register/refresh response. The refresh token arrives as an httpOnly cookie, never in the body. */
+export interface AccessTokenResponse {
   accessToken: string
-  refreshToken: string
 }
 
 export interface PlaybackPosition {

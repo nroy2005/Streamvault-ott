@@ -23,8 +23,11 @@ describe('AuthService', () => {
       }),
       findOne: jest.fn(async () => stored),
       findById: jest.fn(async () => stored),
-      updateOne: jest.fn(async (_: unknown, update: { refreshTokenHash: string }) => {
-        if (stored) stored.refreshTokenHash = update.refreshTokenHash;
+      // Honours a refreshTokenHash condition in the filter, like the real query would.
+      updateOne: jest.fn(async (filter: { refreshTokenHash?: string }, update: { refreshTokenHash: string | null }) => {
+        if (!stored) return;
+        if (filter.refreshTokenHash !== undefined && filter.refreshTokenHash !== stored.refreshTokenHash) return;
+        stored.refreshTokenHash = update.refreshTokenHash;
       }),
     };
     service = new AuthService(users as unknown as Model<User>, new JwtService());
@@ -52,6 +55,24 @@ describe('AuthService', () => {
     const second = await service.refresh(first.refreshToken);
     expect(second.refreshToken).not.toBe(first.refreshToken);
     await expect(service.refresh(first.refreshToken)).rejects.toBeInstanceOf(UnauthorizedException);
+    await expect(service.refresh(second.refreshToken)).resolves.toHaveProperty('accessToken');
+  });
+
+  it('rejects a missing refresh cookie', async () => {
+    await expect(service.refresh(undefined)).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('logout revokes the current refresh token', async () => {
+    const { refreshToken } = await service.register({ email: 'a@b.co', password: 'password123' });
+    await service.logout(refreshToken);
+    expect(stored?.refreshTokenHash).toBeNull();
+    await expect(service.refresh(refreshToken)).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('logout with a stale token does not sign out the newer session', async () => {
+    const first = await service.register({ email: 'a@b.co', password: 'password123' });
+    const second = await service.refresh(first.refreshToken);
+    await service.logout(first.refreshToken);
     await expect(service.refresh(second.refreshToken)).resolves.toHaveProperty('accessToken');
   });
 

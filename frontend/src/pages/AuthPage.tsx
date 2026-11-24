@@ -1,12 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation } from 'react-router'
 import { api, errorMessage } from '../api/client'
-import type { AuthTokens } from '../api/types'
+import type { AccessTokenResponse } from '../api/types'
 import { useAuth } from '../stores/auth'
 
 export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const token = useAuth((s) => s.accessToken)
-  const setTokens = useAuth((s) => s.setTokens)
+  const setAccessToken = useAuth((s) => s.setAccessToken)
   const from = (useLocation().state as { from?: string } | null)?.from ?? '/'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -21,8 +21,8 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
     setBusy(true)
     setError(null)
     try {
-      const { data } = await api.post<AuthTokens>(`/auth/${mode}`, { email, password })
-      setTokens(data, email) // re-render redirects via <Navigate>
+      const { data } = await api.post<AccessTokenResponse>(`/auth/${mode}`, { email, password })
+      setAccessToken(data.accessToken) // re-render redirects via <Navigate>
     } catch (err) {
       setError(errorMessage(err))
       setBusy(false)

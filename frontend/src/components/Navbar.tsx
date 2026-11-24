@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation, useNavigate, useSearchParams } from 'react-router'
+import { signOut } from '../api/client'
 import { useDebounced } from '../hooks/useApi'
 import { useAuth } from '../stores/auth'
 
@@ -8,7 +9,6 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
 
 export function Navbar() {
   const email = useAuth((s) => s.email)
-  const logout = useAuth((s) => s.logout)
   const navigate = useNavigate()
   const onSearchPage = useLocation().pathname === '/search'
   const [params] = useSearchParams()
@@ -56,7 +56,7 @@ export function Navbar() {
             {email}
           </span>
         </div>
-        <button type="button" onClick={logout} className="text-sm text-neutral-300 hover:text-white">
+        <button type="button" onClick={() => void signOut()} className="text-sm text-neutral-300 hover:text-white">
           Sign out
         </button>
       </nav>
