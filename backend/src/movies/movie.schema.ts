@@ -27,3 +27,6 @@ export class Movie {
 
 export type MovieDocument = HydratedDocument<Movie>;
 export const MovieSchema = SchemaFactory.createForClass(Movie);
+// ponytail: $text matches whole words/stems only ("aveng" won't find "Avengers").
+// Move to Atlas Search or a prefix regex if search-as-you-type is needed.
+MovieSchema.index({ title: 'text', genres: 'text' }, { weights: { title: 10, genres: 2 }, name: 'movie_text' });
